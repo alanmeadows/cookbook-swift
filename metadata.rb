@@ -1,4 +1,5 @@
-maintainer        "Rackspace US, Inc."
+name              "swift"
+maintainer        "ATT, Inc."
 license           "Apache 2.0"
 description       "Installs and configures Openstack Swift"
 long_description  IO.read(File.join(File.dirname(__FILE__), 'README.md'))
@@ -12,8 +13,6 @@ recipe            "swift::container-server", "Installs the swift container serve
   supports os
 end
 
-%w{ dsh monitoring openssl osops-utils sysctl memcached }.each do |dep|
+%w{ memcached }.each do |dep|
   depends dep
 end
-
-depends "keystone", ">= 1.0.17"

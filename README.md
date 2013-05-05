@@ -1,18 +1,3 @@
-Support
-=======
-
-Issues have been disabled for this repository.  
-Any issues with this cookbook should be raised here:
-
-[https://github.com/rcbops/chef-cookbooks/issues](https://github.com/rcbops/chef-cookbooks/issues)
-
-Please title the issue as follows:
-
-[swift]: \<short description of problem\>
-
-In the issue description, please include a longer description of the issue, along with any relevant log/command/error output.  
-If logfiles are extremely long, please place the relevant portion into the issue description, and link to a gist containing the entire logfile
-
 Description
 ====
 
@@ -34,7 +19,7 @@ Solaris probably will not.  YMMV, objects in mirror, etc.
 Attributes
 ====
 
- * node[:swift][:authmode] - "swauth" or "keystone" (default "swauth")
+ * node[:swift][:authmode] - "swauth" or "keystone" (default "swauth"). Right now, only swauth is supported.
 
  * node[:swift][:swift_hash] - swift_hash_path_suffix in /etc/swift/swift.conf
 
@@ -49,6 +34,14 @@ Attributes
    probably know all the valid devices, and don't need to pass any
    metadata about them, so { "sdc" => {}} is probably enough.  Example
    expression: Hash[('a'..'f').collect{|x| [ "sd{x}", {} ]}]
+
+The following swift initial ring construction parameters can be customized,
+however they are set to safe defaults even for production environments
+allowing up to 50,000 spindles:
+
+  * default[:swift][:ring][:part_power] 
+  * default[:swift][:ring][:min_part_hours] 
+  * default[:swift][:ring][:replicas]
 
  * node[:swift][:disk_test_filter] - an array of expressions that must
    all be true in order a block deviced to be considered for
@@ -76,34 +69,33 @@ For "swauth", the following attributes are used:
 
  * node[:swift][:authkey] - swauth "swauthkey" if using swauth
 
-For "keystone", the following attributes are used:
+In addition, because swift is typically deployed as a cluster
+there are some attributes used to find interfaces and ip addresses
+on storage nodes:
 
- * [:keystone][:admin_port]
-
- * [:keystone][:admin_token]
-
- * [:keystone][:admin_user]
-
-In addition, there are some attributes used by osops-utils to find
-interfaces on particular devices.
-
- * node[:osops_networks][:swift] - CIDR of the storage network (what
-   address to bind storage nodes to, what ip address to use in rings,
-   etc)
-
- * node[:osops_networks][:public] - CIDR of the network that
-   that the proxy listens to, or the load balancer for proxies listens
-   on
+ * node[:swift][:network][:proxy-bind-ip] - the IP address to bind to
+   on the proxy servers, defaults to 0.0.0.0 for all addresses.
+ * node[:swift][:network][:proxy-bind-port] - the port to bind to
+   on the proxy servers, defaults to 8080
+ * node[:swift][:network][:account-bind-ip] - the IP address to bind to
+   on the account servers, defaults to 0.0.0.0 for all addresses.
+ * node[:swift][:network][:account-bind-port] - the port to bind to
+   on the account servers, defaults to 6002
+ * node[:swift][:network][:container-bind-ip] - the IP address to bind to
+   on the container servers, defaults to 0.0.0.0 for all addresses.
+ * node[:swift][:network][:container-bind-port] - the port to bind to
+   on the container servers, defaults to 6002
+ * node[:swift][:network][:object-bind-ip] - the IP address to bind to
+   on the object servers, defaults to 0.0.0.0 for all addresses.
+ * node[:swift][:network][:object-bind-port] - the port to bind to
+   on the container servers, defaults to 6002
+ * node[:swift][:network][:object-cidr] - the CIDR network for your object
+   servers in order to build the ring, defaults to 10.0.0.0/24
 
 Deps
 ====
 
- * dsh
- * keystone
- * monitoring
- * openssl
- * osops-utils
- * sysctl
+ * apt
 
 Roles
 ====
@@ -138,15 +130,18 @@ Example environment:
 
 
     {
-	"override_attributes": {
+	"default_attributes": {
 	    "swift": {
 		"swift_hash": "107c0568ea84",
 		"authmode": "swauth",
-		"authkey": "3f281b71-ce89-4b27-a2ad-ad873d3f2760"
+		"authkey": "test"
+                "auto_rebuild_rings": false
+                "git_builder_ip": "10.0.0.10"
+                "swauth": {
+                    "url": "http://10.0.0.10:8080/v1/"
+                }
+
 	    },
-	    "osops_networks": {
-		"swift": "192.168.122.0/24"
-	    }
 	},
 	"cookbook_versions": {
 	},
@@ -159,7 +154,43 @@ Example environment:
     }
 
 This sets up defaults for a swauth-based cluster with the storage
-network on 192.168.122.0/24.
+network on 10.0.0.0/24.
+
+Example all-in-one storage node config (note there is only one node
+with the swift-setup role)
+
+    {
+      "id":       "storage1",
+      "name":     "storage1",
+      "json_class": "Chef::Node",
+      "run_list": [
+          "role[swift-setup]",
+          "role[swift-management-server]",
+          "role[swift-account-server]",
+          "role[swift-object-server]",
+          "role[swift-container-server]",
+          "role[swift-proxy-server]"
+      ],
+      "chef_environment": "development",
+      "normal": {
+        "swift": {
+          "zone": "1"
+        }
+      }
+    }
+
+Example storage-server role:
+
+    {
+      "name": "swift-object-server",
+      "json_class": "Chef::Role",
+      "run_list": [
+        "recipe[apt]",
+        "recipe[swift::object-server]"
+      ],
+      "description": "A storage server role.",
+      "chef_type": "role"
+    }
 
 Run list for proxy server:
 

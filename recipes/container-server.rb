@@ -60,7 +60,6 @@ end
     source "simple-redhat-init-config.erb"
     variables({ :description => "OpenStack Object Storage (swift) - " +
                 "Container #{svc.capitalize}",
-                :user => "swift",
                 :exec => "container-#{svc}"
               })
     only_if { platform?(%w{redhat centos}) }
@@ -77,32 +76,15 @@ end
     action [:enable, :start]
     only_if "[ -e /etc/swift/container-server.conf ] && [ -e /etc/swift/container.ring.gz ]"
   end
-
-
-  monitoring_procmon svc do
-    process_name "python.*#{svc}"
-    script_name service_name
-    only_if "[ -e /etc/swift/container-server.conf ] && [ -e /etc/swift/container.ring.gz ]"
-  end
-
-  monitoring_metric "#{svc}-proc" do
-    type "proc"
-    proc_name svc
-    proc_regex "python.*#{svc}"
-
-    alarms(:failure_min => 1.0)
-  end
 end
-
-container_endpoint = get_bind_endpoint("swift","container-server")
 
 template "/etc/swift/container-server.conf" do
   source "container-server.conf.erb"
   owner "swift"
   group "swift"
   mode "0600"
-  variables("bind_ip" => container_endpoint["host"],
-            "bind_port" => container_endpoint["port"])
+  variables("bind_ip" => node["swift"]["network"]["container-bind-ip"],
+            "bind_port" => node["swift"]["network"]["container-bind-port"])
 
   notifies :restart, "service[swift-container]", :immediately
   notifies :restart, "service[swift-container-replicator]", :immediately

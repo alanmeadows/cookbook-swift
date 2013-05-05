@@ -17,10 +17,4 @@
 # limitations under the License.
 #
 
-memcache_info = get_bind_endpoint("swift","memcache")
-
-# for the upstream memcached cookbook to use
-node.set["memcached"]["listen"] = memcache_info["host"]
-node.set["memcached"]["port"] = memcache_info["port"]
-
 include_recipe "memcached"

@@ -40,7 +40,7 @@ bind_ip = <%= @bind_host %>
 bind_port = <%= @bind_port %>
 
 [pipeline:main]
-pipeline = <% if @use_informant %>informant <% end %>catch_errors healthcheck cache ratelimit <%= pipeline %> proxy-server
+pipeline = catch_errors healthcheck cache ratelimit <%= pipeline %> proxy-server
 
 [app:proxy-server]
 use = egg:swift#proxy
@@ -81,24 +81,7 @@ allow_account_management = <%= account_management %>
 account_autocreate = true
 <% end %>
 
-<% if @use_informant %>
-[filter:informant]
-use = egg:informant#informant
-# statsd_host = 127.0.0.1
-# statsd_port = 8125
-# standard statsd sample rate 0.0 <= 1
-# statsd_sample_rate = 0.5
-# list of allowed methods, all others will generate a "BAD_METHOD" event
-# valid_http_methods = GET,HEAD,POST,PUT,DELETE,COPY
-# send multiple statsd events per packet as supported by statsdpy
-# combined_events = no
-# prepends name to metric collection output for easier recognition, e.g. company.swift.
-# metric_name_prepend =
-#####
-statsd_host = <%= @statsd_host %>
-statsd_port = <%= @statsd_port %>
-<% end %>
-
+<% if @authmode == "swauth" -%>
 [filter:swauth]
 use = egg:swauth#swauth
 # set log_name = swauth
@@ -107,7 +90,8 @@ use = egg:swauth#swauth
 <% if account_management -%>
 super_admin_key = <%= node[:swift][:authkey] %>
 <% end -%>
-default_swift_cluster = local#<%= @cluster_endpoint %>
+default_swift_cluster = local#<%= node[:swift][:swift_url] %>
+<% end %>
 
 [filter:healthcheck]
 use = egg:swift#healthcheck
@@ -241,15 +225,3 @@ use = egg:swift#formpost
 [filter:keystoneauth]
 operator_roles = Member,admin
 use = egg:swift#keystoneauth
-
-[filter:authtoken]
-paste.filter_factory = keystone.middleware.auth_token:filter_factory
-auth_host = <%= @keystone_api_ipaddress %>
-auth_port = <%= @keystone_admin_port %>
-auth_protocol = http
-auth_uri = http://<%= @keystone_api_ipaddress %>:<%= @keystone_admin_port %>/
-admin_tenant_name = <%= @service_tenant_name %>
-admin_user = <%= @service_user %>
-admin_password = <%= @service_pass %>
-delay_auth_decision = 1
-signing_dir = /var/cache/swift

@@ -1,45 +1,72 @@
-# blank initial swift state
+#--------------------
+# node/ring settings
+#--------------------
+
 default["swift"]["state"] = {}
-# valid: :swauth or :keystone
-default["swift"]["authmode"] = "swauth"                                     # cluster_attribute
 default["swift"]["audit_hour"] = "5"                                        # cluster_attribute
 default["swift"]["disk_enum_expr"] = "node[:block_device]"                  # cluster_attribute
 default["swift"]["auto_rebuild_rings"] = false                              # cluster_attribute
+default["swift"]["git_builder_ip"] = "127.0.0.1"                            # cluster_attribute
 
-default["swift"]["service_tenant_name"] = "service"                         # node_attribute
-default["swift"]["service_user"] = "swift"                                  # node_attribute
-default["swift"]["dispersion_service_user"] = "dispersion"                  # node_attribute
-# Replacing with OpenSSL::Password in recipes/proxy-server.rb
-#default["swift"]["service_pass"] = "tYPvpd5F"
-default["swift"]["service_role"] = "admin"                                  # node_attribute
+# the release only has any effect on ubuntu, and must be
+# a valid release on http://ubuntu-cloud.archive.canonical.com/ubuntu
+default["swift"]["release"] = "folsom"					    # cluster_attribute
 
-# should we use swift-informant?
-# we'll default this to off until we get upstream
-# packages from distros.  You can still use it, just be aware
-# it gets packages from the osops ppa
-default["swift"]["use_informant"] = false                                   # cluster_attribute
+#--------------------
+# authentication
+#--------------------
 
-default["swift"]["services"]["proxy"]["scheme"] = "http"                    # node_attribute
-default["swift"]["services"]["proxy"]["network"] = "swift-public"           # node_attribute (inherited from cluster?)
-default["swift"]["services"]["proxy"]["port"] = 8080                        # node_attribute (inherited from cluster?)
-default["swift"]["services"]["proxy"]["path"] = "/v1/AUTH_%(tenant_id)s"                       # node_attribute
+# auth settings for swauth
+default["swift"]["authmode"]  = "swauth"                                    # cluster_attribute
+default["swift"]["swift_url"] = "http://127.0.0.1:8080/v1/"		    # cluster_attribute
+default["swift"]["auth_url"]  = "http://127.0.0.1:8080/auth/v1.0"           # cluster_attribute
 
-default["swift"]["services"]["object-server"]["network"] = "swift"          # node_attribute (inherited from cluster?)
-default["swift"]["services"]["object-server"]["port"] = 6000                # node_attribute (inherited from cluster?)
+#---------------------
+# dispersion settings
+#---------------------
 
-default["swift"]["services"]["container-server"]["network"] = "swift"       # node_attribute (inherited from cluster?)
-default["swift"]["services"]["container-server"]["port"] = 6001             # node_attribute (inherited from cluster?)
+default["swift"]["dispersion"]["auth_user"] = "test:test"                   # cluster_attribute
+default["swift"]["dispersion"]["auth_key"] = "test"                         # cluster_attribute
 
-default["swift"]["services"]["account-server"]["network"] = "swift"         # node_attribute (inherited from cluster?)
-default["swift"]["services"]["account-server"]["port"] = 6002               # node_attribute (inherited from cluster?)
 
-default["swift"]["services"]["memcache"]["network"] = "swift"               # node_attribute (inherited from cluster?)
-default["swift"]["services"]["memcache"]["port"] = 11211                    # node_attribute (inherited from cluster?)
+# settings for the swift ring - these default settings are
+# a safe setting for testing but part_power should be set to
+# 26 in production to allow a swift cluster with 50,000 spindles
+default["swift"]["ring"]["part_power"] = 18				    # cluster_attribute
+default["swift"]["ring"]["min_part_hours"] = 1                              # cluster_attribute
+default["swift"]["ring"]["replicas"] = 3                                    # cluster_attribute
 
-default["swift"]["services"]["ring-repo"]["network"] = "swift"              # node_attribute (inherited from cluster?)
-default["swift"]["services"]["ring-repo"]["port"] = 9418                    # node_attribute (inherited from cluster?)
-default["swift"]["services"]["ring-repo"]["scheme"] = "git"                 # node_attribute
-default["swift"]["services"]["ring-repo"]["path"] = "/rings"                # node_attribute
+#------------------
+# network settings
+#------------------
+
+# the cidr configuration items are unimportant for a single server
+# configuration, but in a multi-server setup, the cidr should match
+# the interface appropriate to that service as they are used to
+# resolve the appropriate addresses to use for internode 
+# communication
+
+# proxy servers
+default["swift"]["network"]["proxy-bind-ip"]	        = "0.0.0.0"
+default["swift"]["network"]["proxy-bind-port"] 	        = "8080"
+default["swift"]["network"]["proxy-cidr"]               = "10.0.0.0/24"
+
+# account servers
+default["swift"]["network"]["account-bind-ip"]	        = "0.0.0.0"
+default["swift"]["network"]["account-bind-port"]        = "6002"
+
+# container servers
+default["swift"]["network"]["container-bind-ip"]	= "0.0.0.0"
+default["swift"]["network"]["container-bind-port"]      = "6001"
+
+# object servers
+default["swift"]["network"]["object-bind-ip"]	        = "0.0.0.0"
+default["swift"]["network"]["object-bind-port"]         = "6000"
+default["swift"]["network"]["object-cidr"]              = "10.0.0.0/24"
+
+#------------------
+# disk search
+#------------------
 
 # disk_test_filter is an array of predicates to test against disks to
 # determine if a disk should be formatted and configured for swift.
@@ -52,23 +79,9 @@ default["swift"]["disk_test_filter"] = [ "candidate =~ /sd[^a]/ or candidate =~ 
                                          "info['removable'] == 0.to_s"
                                        ]                                    # cluster_attribute
 
-# some attributes to control where network interfaces are laid down
-
-# where LB public interfaces get dropped.  Or should these get mapped by convention?
-default["osops_networks"]["mapping"]["swift-lb"] = "public"                 # cluster_attribute
-default["osops_networks"]["mapping"]["swift-private"] = "swift"             # cluster_attribute
-default["osops_networks"]["mapping"]["swift-public"] = "public"             # cluster_attribute
-
-
-# attributes for monitoring
-
-# disk space percentage used before warning/error
-default["swift"]["monitoring"]["used_warning"] = 80                         # node_attribute (inherited from cluster?)
-default["swift"]["monitoring"]["used_failure"] = 85                         # node_attribute (inherited from cluster?)
-
-# other (non-swift) disk space before warning/error
-default["swift"]["monitoring"]["other_warning"] = 80                        # node_attribute (inherited from cluster?)
-default["swift"]["monitoring"]["other_failure"] = 95                        # node_attribute (inherited from cluster?)
+#------------------
+# packages
+#------------------
 
 
 # Leveling between distros

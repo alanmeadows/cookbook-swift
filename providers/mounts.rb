@@ -43,7 +43,7 @@ action :ensure_exists do
     info["mounted"] = system("mount | grep '#{path}/#{info["mountpoint"]}\'")
     info["size"] = `sfdisk -s /dev/#{device}`.to_i / 1024
 
-    next if (info["uuid"] =~ /^[0-9A-Fa-f\-]{10,}+$/).nil?
+    next if (info["uuid"] == '')
 
     dev_info[info["uuid"]] = info
   end
@@ -147,8 +147,17 @@ action :ensure_exists do
   end
 
   if @new_resource.publish_attributes and dev_info != {}
-    foo="node.set" + @new_resource.publish_attributes.split("/").collect{ |x| "[\"#{x}\"]" }.join("") + "=#{dev_info}"
-    eval(foo)
+    dev_info.each do |k,v|
+      node.set["swift"]["state"]["devs"][k] = {
+        :device => v["device"],
+        :size => v["size"],
+        :uuid => v["uuid"],
+        :mounted => v["mounted"],
+        :format => v["format"],
+        :mountpoint => v["mountpoint"],
+        :ip => v["ip"]
+      }
+    end
   end
 end
 

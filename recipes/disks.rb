@@ -19,7 +19,10 @@
 # Author: Ron Pedde <ron.pedde@rackspace.com>
 # Inspired by: Andi Abes @ Dell
 
-include_recipe "osops-utils"
+class Chef::Recipe
+  include IPUtils
+end
+
 
 platform_options = node["swift"]["platform"]
 
@@ -51,7 +54,7 @@ end
 #
 # additionally, there is an implicit assumption that bind ports
 # for all object/container/account services are on the same net
-disk_ip = get_ip_for_net(node["swift"]["services"]["object-server"]["network"])
+disk_ip = locate_ip_in_cidr(node["swift"]["network"]["object-cidr"], node)
 
 swift_mounts "/srv/node" do
   action :ensure_exists

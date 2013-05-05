@@ -16,8 +16,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-include_recipe "osops-utils"
-include_recipe "monitoring"
 
 class Chef::Recipe
   include DriveUtils
@@ -25,7 +23,17 @@ end
 
 platform_options = node["swift"]["platform"]
 
-git_service = get_access_endpoint("swift-management-server","swift","ring-repo")
+# update repository if requested with the ubuntu cloud
+case node["platform"]
+when "ubuntu"
+  apt_repository "ubuntu_cloud" do
+    uri "http://ubuntu-cloud.archive.canonical.com/ubuntu"
+    distribution "#{node['lsb']['codename']}-updates/#{node['swift']['release']}"
+    components ["main"]
+    key "5EDB1B62EC4926EA"
+    action :add
+  end
+end
 
 platform_options["swift_packages"].each do |pkg|
   package pkg do
@@ -50,7 +58,7 @@ file "/etc/swift/swift.conf" do
   only_if "/usr/bin/id swift"
 end
 
-# need a shell to dsh, among other things
+# need a swift user
 user "swift" do
   shell "/bin/bash"
   action :modify
@@ -61,70 +69,23 @@ package "git" do
   action :install
 end
 
-# drop a ring puller script so we can dsh ring pulls
+# drop a ring puller script
+# TODO: make this smarter
+# 
+git_builder_ip = node["swift"]["git_builder_ip"]
 template "/etc/swift/pull-rings.sh" do
   source "pull-rings.sh.erb"
   owner "swift"
   group "swift"
   mode "0700"
   variables({
-              :builder_ip => git_service["host"],
+              :builder_ip => git_builder_ip,
               :service_prefix => platform_options["service_prefix"]
             })
   only_if "/usr/bin/id swift"
 end
-
+  
 execute "/etc/swift/pull-rings.sh" do
   cwd "/etc/swift"
   only_if "[ -x /etc/swift/pull-rings.sh ]"
-end
-
-template "/etc/sudoers.d/swift" do
-  owner "root"
-  group "root"
-  mode "0440"
-  variables({
-              :node => node
-            })
-  action :nothing
-end
-
-monitoring_metric "swift-common-stats" do
-  type "pyscript"
-  script "swift_stats.py"
-  alarms("Plugin_unmounts" => {
-          "Type_gauge" => {
-            :data_source => "value",
-            :failure_max => 0.0 }})
-end
-
-keystone = get_settings_by_role("keystone", "keystone")
-ks_service_endpoint = get_access_endpoint("keystone-api", "keystone", "service-api")
-
-template "/root/swift-openrc" do
-  source "swift-openrc.erb"
-  owner "swift"
-  group "swift"
-  mode "0600"
-  vars = {
-    "user" => keystone["admin_user"],
-    "tenant" => keystone["users"][keystone["admin_user"]]["default_tenant"],
-    "password" => keystone["users"][keystone["admin_user"]]["password"],
-    "keystone_api_ipaddress" => ks_service_endpoint["host"],
-    "keystone_service_port" => ks_service_endpoint["port"],
-    "auth_strategy" => "keystone",
-  }
-  variables(vars)
-end
-
-# README(shep): disk usage thresholds are performed by hardware::common
-# devices = (node["swift"]["state"]["devs"] || {}).inject([]) { |ary, (k,v)| ary << v["mountpoint"] }
-
-# Sysctl tuning
-include_recipe "sysctl::default"
-sysctl_multi "swift" do
-  instructions("net.ipv4.tcp_tw_reuse" => "1",
-               "net.ipv4.ip_local_port_range" => "10000 61000",
-               "net.ipv4.tcp_syncookies" => "0",
-               "net.ipv4.tcp_fin_timeout" => "30")
 end
