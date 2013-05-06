@@ -59,7 +59,6 @@ end
     source "simple-redhat-init-config.erb"
     variables({ :description => "OpenStack Object Storage (swift) - " +
                 "Account #{svc.capitalize}",
-                :user => "swift",
                 :exec => "account-#{svc}"
               })
     only_if { platform?(%w{redhat centos}) }
@@ -75,31 +74,20 @@ end
     action [:enable, :start]
     only_if "[ -e /etc/swift/account-server.conf ] && [ -e /etc/swift/account.ring.gz ]"
   end
-
-  monitoring_procmon svc do
-    process_name "python.*#{svc}"
-    script_name service_name
-    only_if "[ -e /etc/swift/account-server.conf ] && [ -e /etc/swift/account.ring.gz ]"
-  end
-
-  monitoring_metric "#{svc}-proc" do
-    type "proc"
-    proc_name svc
-    proc_regex "python.*#{svc}"
-
-    alarms(:failure_min => 1.0)
-  end
 end
 
-account_endpoint = get_bind_endpoint("swift","account-server")
+# retrieve bind information from node
+bind_ip = node["swift"]["network"]["bind_ip"]
+bind_port = node["swift"]["network"]["bind_port"]
 
+# create account server template
 template "/etc/swift/account-server.conf" do
   source "account-server.conf.erb"
   owner "swift"
   group "swift"
   mode "0600"
-  variables("bind_ip" => account_endpoint["host"],
-            "bind_port" => account_endpoint["port"])
+  variables("bind_ip" => node["swift"]["network"]["account-bind-ip"],
+            "bind_port" => node["swift"]["network"]["account-bind-port"])
 
   notifies :restart, "service[swift-account]", :immediately
   notifies :restart, "service[swift-account-auditor]", :immediately

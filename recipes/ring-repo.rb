@@ -22,6 +22,7 @@
 #
 
 platform_options = node["swift"]["platform"]
+ring_options = node["swift"]["ring"]
 
 platform_options["git_packages"].each do |pkg|
   package pkg do
@@ -59,7 +60,7 @@ execute "initialize git repo" do
   command "git init --bare && touch git-daemon-export-ok"
   creates "#{platform_options["git_dir"]}/rings/config"
   action :run
-  notifies :run, resources(:execute => "create empty git repo"), :immediately
+  notifies :run, "execute[create empty git repo]", :immediately
 end
 
 # epel/f-17 missing systemd-ified inits
@@ -97,7 +98,7 @@ cookbook_file "/etc/default/git-daemon" do
   mode "644"
   source "git-daemon.default"
   action :create
-  notifies :restart, resources(:service => "git-daemon"), :immediately
+  notifies :restart, "service[git-daemon]", :immediately
   not_if { platform?(%w{fedora centos redhat}) }
 end
 
@@ -115,8 +116,14 @@ execute "checkout-rings" do
   creates "/etc/swift/ring-workspace/rings"
 end
 
-# FIXME: node attribute - partition power
 [ "account", "container", "object" ].each do |ring_type|
+  
+  part_power = ring_options["part_power"]
+  min_part_hours = ring_options["min_part_hours"]
+  replicas = ring_options["replicas"]
+
+  Chef::Log.info("Building initial ring #{ring_type} using part_power=#{part_power}, " +
+                 "min_part_hours=#{min_part_hours}, replicas=#{replicas}")
   execute "add #{ring_type}.builder" do
     cwd "/etc/swift/ring-workspace/rings"
     command "git add #{ring_type}.builder && git commit -m 'initial ring builders' --author='chef <chef@openstack>'"
@@ -126,16 +133,11 @@ end
 
   execute "create #{ring_type} builder" do
     cwd "/etc/swift/ring-workspace/rings"
-    command "swift-ring-builder #{ring_type}.builder create 18 3 1"
+    command "swift-ring-builder #{ring_type}.builder create #{part_power} #{replicas} #{min_part_hours}"
     user "swift"
     creates "/etc/swift/ring-workspace/rings/#{ring_type}.builder"
     notifies :run, "execute[add #{ring_type}.builder]", :immediate
   end
-end
-
-dsh_group "swift-storage" do
-  action :nothing
-  execute "sudo /etc/swift/pull-rings.sh"
 end
 
 bash "rebuild-rings" do
@@ -143,7 +145,6 @@ bash "rebuild-rings" do
   cwd "/etc/swift/ring-workspace/rings"
   user "swift"
   code <<-EOF
-    set -e
     set -x
 
     # Should this be done?
@@ -153,14 +154,22 @@ bash "rebuild-rings" do
     ../generate-rings.sh
     for d in object account container; do swift-ring-builder ${d}.builder; done
 
-    git add *builder *gz
-    git commit -m "Autobuild of rings on $(date +%Y%m%d) by Chef" --author="chef <chef@openstack>"
+    add=0
+    if test -n "$(find . -maxdepth 1 -name '*gz' -print -quit)"
+    then
+        git add *builder *gz
+        add=1
+    else
+        git add *builder
+        add=1
+    fi
+    if [ $add -ne 0 ]
+    then
+        git commit -m "Autobuild of rings on $(date +%Y%m%d) by Chef" --author="chef <chef@openstack>"
+        git push
+    fi
 
-    # should dsh a ring pull at this point
-    git push
   EOF
-  notifies :execute, "dsh_group[swift-storage]", :immediate
-  only_if { node["swift"]["auto_rebuild_rings"] }
 end
 
 swift_ring_script "/etc/swift/ring-workspace/generate-rings.sh" do
