@@ -16,48 +16,58 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-::Chef::Recipe.send(:include, Opscode::OpenSSL::Password)
 include_recipe "swift::common"
 include_recipe "swift::memcached"
 include_recipe "osops-utils"
 
-# Set a secure keystone service password
-node.set_unless['swift']['service_pass'] = secure_password
-
-if not node['package_component'].nil?
-    release = node['package_component']
+# Find the node that ran the swift-setup recipe and grab his passswords
+if Chef::Config[:solo]
+  Chef::Application.fatal! "This recipe uses search. Chef Solo does not support search."
 else
-    release = "essex-final"
+  if node.run_list.expand(node.chef_environment).recipes.include?("swift::setup")
+    Chef::Log.info("I ran the swift::setup so I will use my own swift passwords")
+  else
+    setup = search(:node, "chef_environment:#{node.chef_environment} AND roles:swift-setup")
+    if setup.length == 0
+      Chef::Application.fatal! "You must have run the swift::setup recipe (on this or another node) before running the swift::proxy recipe on this node"
+    elsif setup.length == 1
+      Chef::Log.info "Found swift::setup node: #{setup[0].name}"
+      node.set["swift"]["service_pass"] = setup[0]["swift"]["service_pass"]
+    elsif setup.length >1
+      Chef::Application.fatal! "You have multiple nodes in your environment that have run swift-setup, and that is not allowed"
+    end
+  end
 end
 
-case node['platform']
-when "redhat", "centos", "fedora"
-  platform_options = node["swift"]["platform"]
-when "ubuntu"
-  platform_options = node["swift"]["platform"][release]
-end
+platform_options = node["swift"]["platform"]
 
 # install platform-specific packages
 platform_options["proxy_packages"].each do |pkg|
   package pkg do
-    action :upgrade
+    action :install
     options platform_options["override_options"]
   end
 end
 
 package "python-swauth" do
-  action :upgrade
+  action :install
   only_if { node["swift"]["authmode"] == "swauth" }
 end
 
 package "python-swift-informant" do
-  action :upgrade
+  action :install
   only_if { node["swift"]["use_informant"] }
 end
 
 package "python-keystone" do
-  action :upgrade
+  action :install
   only_if { node["swift"]["authmode"] == "keystone" }
+end
+
+directory "/var/cache/swift" do
+  owner "swift"
+  group "swift"
+  mode 0600
 end
 
 swift_proxy_service = platform_options["service_prefix"] + "swift-proxy" + platform_options["service_suffix"]
@@ -109,84 +119,9 @@ memcache_servers = memcache_endpoints.collect do |endpoint|
 end
 
 proxy_bind = get_bind_endpoint("swift", "proxy")
-proxy_access = get_access_endpoint("swift-proxy-server",
-                                   "swift", "proxy")
-
-if node["swift"]["authmode"] == "keystone"
-  keystone = get_settings_by_role("keystone", "keystone")
-
-  # FIXME: use get_access_endpoint
-  ks_admin = get_access_endpoint("keystone","keystone","admin-api")
-  ks_service = get_access_endpoint("keystone","keystone","service-api")
-
-  # Register Service Tenant
-  keystone_register "Register Service Tenant" do
-    auth_host ks_admin["host"]
-    auth_port ks_admin["port"]
-    auth_protocol ks_admin["scheme"]
-    api_ver ks_admin["path"]
-    auth_token keystone["admin_token"]
-    tenant_name node["swift"]["service_tenant_name"]
-    tenant_description "Service Tenant"
-    tenant_enabled "true" # Not required as this is the default
-    action :create_tenant
-  end
-
-  # Register Service User
-  keystone_register "Register Service User" do
-    auth_host ks_admin["host"]
-    auth_port ks_admin["port"]
-    auth_protocol ks_admin["scheme"]
-    api_ver ks_admin["path"]
-    auth_token keystone["admin_token"]
-    tenant_name node["swift"]["service_tenant_name"]
-    user_name node["swift"]["service_user"]
-    user_pass node["swift"]["service_pass"]
-    user_enabled "true" # Not required as this is the default
-    action :create_user
-  end
-
-  ## Grant Admin role to Service User for Service Tenant ##
-  keystone_register "Grant 'admin' Role to Service User for Service Tenant" do
-    auth_host ks_admin["host"]
-    auth_port ks_admin["port"]
-    auth_protocol ks_admin["scheme"]
-    api_ver ks_admin["path"]
-    auth_token keystone["admin_token"]
-    tenant_name node["swift"]["service_tenant_name"]
-    user_name node["swift"]["service_user"]
-    role_name node["swift"]["service_role"]
-    action :grant_role
-  end
-
-  # Register Storage Service
-  keystone_register "Register Storage Service" do
-    auth_host ks_admin["host"]
-    auth_port ks_admin["port"]
-    auth_protocol ks_admin["scheme"]
-    api_ver ks_admin["path"]
-    auth_token keystone["admin_token"]
-    service_name "swift"
-    service_type "object-store"
-    service_description "Swift Object Storage Service"
-    action :create_service
-  end
-
-  # Register Storage Endpoint
-  keystone_register "Register Storage Endpoint" do
-    auth_host ks_admin["host"]
-    auth_port ks_admin["port"]
-    auth_protocol ks_admin["scheme"]
-    api_ver ks_admin["path"]
-    auth_token keystone["admin_token"]
-    service_type "object-store"
-    endpoint_region "RegionOne"
-    endpoint_adminurl "#{proxy_access['uri']}/AUTH_%(tenant_id)s"
-    endpoint_internalurl "#{proxy_access['uri']}/AUTH_%(tenant_id)s"
-    endpoint_publicurl "#{proxy_access['uri']}/AUTH_%(tenant_id)s"
-    action :create_endpoint
-  end
-end
+proxy_access = get_access_endpoint("swift-proxy-server", "swift", "proxy")
+ks_admin = get_access_endpoint("keystone-api","keystone","admin-api")
+ks_service = get_access_endpoint("keystone-api","keystone","service-api")
 
 template "/etc/swift/proxy-server.conf" do
   source "proxy-server.conf.erb"

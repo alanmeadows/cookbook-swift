@@ -1,3 +1,18 @@
+Support
+=======
+
+Issues have been disabled for this repository.  
+Any issues with this cookbook should be raised here:
+
+[https://github.com/rcbops/chef-cookbooks/issues](https://github.com/rcbops/chef-cookbooks/issues)
+
+Please title the issue as follows:
+
+[swift]: \<short description of problem\>
+
+In the issue description, please include a longer description of the issue, along with any relevant log/command/error output.  
+If logfiles are extremely long, please place the relevant portion into the issue description, and link to a gist containing the entire logfile
+
 Description
 ====
 
@@ -7,8 +22,8 @@ Requirements
 ====
 
 Client:
- * Ubuntu 11.04
- * Fedora-17 (Soon)
+ * CentOS >= 6.3
+ * Ubuntu >= 12.04
 
 Chef:
  * 0.10.8
@@ -83,8 +98,12 @@ interfaces on particular devices.
 Deps
 ====
 
- * osops-utils (github.com/osops/osops-utils) - used for finding
-   interfaces on particular networks
+ * dsh
+ * keystone
+ * monitoring
+ * openssl
+ * osops-utils
+ * sysctl
 
 Roles
 ====

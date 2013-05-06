@@ -21,32 +21,23 @@
 
 include_recipe "osops-utils"
 
-if not node['package_component'].nil?
-    release = node['package_component']
-else
-    release = "essex-final"
-end
-
-case node['platform']
-when "redhat", "centos", "fedora"
-  platform_options = node["swift"]["platform"]
-when "ubuntu"
-  platform_options = node["swift"]["platform"][release]
-end
+platform_options = node["swift"]["platform"]
 
 package "xfsprogs" do
-  action :upgrade
+  action :install
   only_if { platform?(%w{ubuntu debian fedora centos}) }
 end
 
 %w(parted util-linux).each do |pkg|
   package pkg do
-    action :upgrade
+    action :install
   end
 end
 
-disks = locate_disks(node["swift"]["disk_enum_expr"],
-                     node["swift"]["disk_test_filter"])
+disk_enum_expr = node["swift"]["disk_enum_expr"]
+disk_test_filter = node["swift"]["disk_test_filter"]
+
+disks = locate_disks(disk_enum_expr, disk_test_filter)
 
 disks.each do |disk|
   swift_disk "/dev/#{disk}" do

@@ -21,22 +21,11 @@
 # for purposes of ring synchronization
 #
 
-if not node['package_component'].nil?
-    release = node['package_component']
-else
-    release = "essex-final"
-end
-
-case node['platform']
-when "redhat", "centos", "fedora"
-  platform_options = node["swift"]["platform"]
-when "ubuntu"
-  platform_options = node["swift"]["platform"][release]
-end
+platform_options = node["swift"]["platform"]
 
 platform_options["git_packages"].each do |pkg|
   package pkg do
-    action :upgrade
+    action :install
   end
 end
 

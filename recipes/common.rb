@@ -23,24 +23,13 @@ class Chef::Recipe
   include DriveUtils
 end
 
-if not node['package_component'].nil?
-    release = node['package_component']
-else
-    release = "essex-final"
-end
-
-case node['platform']
-when "redhat", "centos", "fedora"
-  platform_options = node["swift"]["platform"]
-when "ubuntu"
-  platform_options = node["swift"]["platform"][release]
-end
+platform_options = node["swift"]["platform"]
 
 git_service = get_access_endpoint("swift-management-server","swift","ring-repo")
 
 platform_options["swift_packages"].each do |pkg|
   package pkg do
-    action :upgrade
+    action :install
   end
 end
 
@@ -69,7 +58,7 @@ user "swift" do
 end
 
 package "git" do
-  action :upgrade
+  action :install
 end
 
 # drop a ring puller script so we can dsh ring pulls
@@ -109,7 +98,24 @@ monitoring_metric "swift-common-stats" do
             :failure_max => 0.0 }})
 end
 
+keystone = get_settings_by_role("keystone", "keystone")
+ks_service_endpoint = get_access_endpoint("keystone-api", "keystone", "service-api")
 
+template "/root/swift-openrc" do
+  source "swift-openrc.erb"
+  owner "swift"
+  group "swift"
+  mode "0600"
+  vars = {
+    "user" => keystone["admin_user"],
+    "tenant" => keystone["users"][keystone["admin_user"]]["default_tenant"],
+    "password" => keystone["users"][keystone["admin_user"]]["password"],
+    "keystone_api_ipaddress" => ks_service_endpoint["host"],
+    "keystone_service_port" => ks_service_endpoint["port"],
+    "auth_strategy" => "keystone",
+  }
+  variables(vars)
+end
 
 # README(shep): disk usage thresholds are performed by hardware::common
 # devices = (node["swift"]["state"]["devs"] || {}).inject([]) { |ary, (k,v)| ary << v["mountpoint"] }
