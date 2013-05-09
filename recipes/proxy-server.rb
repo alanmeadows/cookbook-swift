@@ -19,6 +19,10 @@
 include_recipe "swift::common"
 include_recipe "swift::memcached"
 
+class Chef::Recipe
+  include IPUtils
+end
+
 # Find the node that ran the swift-setup recipe and grab his passswords
 if Chef::Config[:solo]
   Chef::Application.fatal! "This recipe uses search. Chef Solo does not support search."
