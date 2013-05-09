@@ -33,7 +33,8 @@ Attributes
    though, if you are going to make a list of valid devices, you
    probably know all the valid devices, and don't need to pass any
    metadata about them, so { "sdc" => {}} is probably enough.  Example
-   expression: Hash[('a'..'f').collect{|x| [ "sd{x}", {} ]}]
+   expression: Hash[('a'..'f').to_a.collect{|x| [ "sd{x}", {} ]}]
+
 
 The following swift initial ring construction parameters can be customized,
 however they are set to safe defaults even for production environments
