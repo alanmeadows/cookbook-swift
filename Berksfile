@@ -4,3 +4,4 @@ site :opscode
 cookbook 'swift',		:path => '.'
 cookbook 'apt',			:git => 'git://github.com/opscode-cookbooks/apt.git', :tag => '1.7.0'
 cookbook 'memcached'
+cookbook 'sysctl'

@@ -65,6 +65,18 @@ default["swift"]["network"]["object-bind-port"]         = "6000"
 default["swift"]["network"]["object-cidr"]              = "10.0.0.0/24"
 
 #------------------
+# sysctl
+#------------------
+
+# set sysctl properties for time waits
+default['sysctl']['net']['ipv4']['tcp_tw_recycle'] = 1
+default['sysctl']['net']['ipv4']['tcp_tw_reuse'] = 1
+default['sysctl']['net']['ipv4']['tcp_syncookies'] = 0
+
+# N.B. conntrack_max may also need to be adjusted if
+# server is running a stateful firewall
+
+#------------------
 # disk search
 #------------------
 
