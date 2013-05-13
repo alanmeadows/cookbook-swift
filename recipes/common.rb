@@ -21,11 +21,16 @@ class Chef::Recipe
   include DriveUtils
 end
 
+include_recipe 'sysctl::default'
+
 platform_options = node["swift"]["platform"]
 
 # update repository if requested with the ubuntu cloud
 case node["platform"]
 when "ubuntu"
+
+  Chef::Log.info("Creating apt repository for http://ubuntu-cloud.archive.canonical.com/ubuntu")
+  Chef::Log.info("chefspec: #{node['lsb']['codename']}-updates/#{node['swift']['release']}")
   apt_repository "ubuntu_cloud" do
     uri "http://ubuntu-cloud.archive.canonical.com/ubuntu"
     distribution "#{node['lsb']['codename']}-updates/#{node['swift']['release']}"
@@ -34,6 +39,7 @@ when "ubuntu"
     action :add
   end
 end
+
 
 platform_options["swift_packages"].each do |pkg|
   package pkg do
