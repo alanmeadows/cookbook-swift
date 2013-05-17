@@ -99,6 +99,7 @@ default_swift_cluster = local#<%= node[:swift][:swift_url] %>#<%= node[:swift][:
 <% else %>
 default_swift_cluster = local#<%= node[:swift][:swift_url] %>
 <% end %>
+<% end %>
 
 [filter:healthcheck]
 use = egg:swift#healthcheck
