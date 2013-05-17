@@ -76,7 +76,13 @@ use = egg:swift#proxy
 # cluster will be automatically created.
 # account_autocreate = false
 ######
-allow_account_management = <%= account_management %>
+#
+# N.B. ideally allow_account_management would only be set on the 
+# management server, but swauth will delete using the cluster url
+# and not the local url
+# allow_account_managemnet = <%= account_management %>
+allow_account_management = true
+
 <% if @authmode == "keystone" -%>
 account_autocreate = true
 <% end %>
@@ -89,7 +95,8 @@ use = egg:swauth#swauth
 ######
 <% if account_management -%>
 super_admin_key = <%= node[:swift][:authkey] %>
-<% end -%>
+default_swift_cluster = local#<%= node[:swift][:swift_url] %>#<%= node[:swift][:swauth_url] %>
+<% else -%>
 default_swift_cluster = local#<%= node[:swift][:swift_url] %>
 <% end %>
 
