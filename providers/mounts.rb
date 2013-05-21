@@ -120,7 +120,12 @@ action :ensure_exists do
     when 'ext4'
       mount_options = "noatime,nodiratime,nobarrier,user_xattr"
     when 'xfs'
-      mount_options = "noatime,nodiratime,nobarrier,logbufs=8"
+      case node["platform"]
+        when "ubuntu","debian"
+          mount_options = "noatime,nodiratime,nobarrier,logbufs=8,nobootwait"
+        else
+          mount_options = "noatime,nodiratime,nobarrier,logbufs=8"
+      end
     end
       
     mt = Mount(mount_path) do

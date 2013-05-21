@@ -17,9 +17,10 @@ default["swift"]["release"] = "folsom"					    # cluster_attribute
 #--------------------
 
 # auth settings for swauth
-default["swift"]["authmode"]  = "swauth"                                    # cluster_attribute
-default["swift"]["swift_url"] = "http://127.0.0.1:8080/v1/"		    # cluster_attribute
-default["swift"]["auth_url"]  = "http://127.0.0.1:8080/auth/v1.0"           # cluster_attribute
+default["swift"]["authmode"]   = "swauth"                                    # cluster_attribute
+default["swift"]["swift_url"]  = "http://127.0.0.1:8080/v1/"		     # cluster_attribute
+default["swift"]["swauth_url"] = "http://127.0.0.1:8080/v1/"	 	     # cluster_attribute
+default["swift"]["auth_url"]   = "http://127.0.0.1:8080/auth/v1.0"           # cluster_attribute
 
 #---------------------
 # dispersion settings

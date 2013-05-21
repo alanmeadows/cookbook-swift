@@ -83,12 +83,10 @@ end
 if Chef::Config[:solo]
    memcache_servers = [ "127.0.0.1:11211" ]
 else
-   memcache_servers = [ "127.0.0.1:11211" ]
+   memcache_servers = []
    proxy_nodes = search(:node, "chef_environment:#{node.chef_environment} AND roles:swift-proxy-server")
-   my_ip = locate_ip_in_cidr(node["swift"]["network"]["proxy-cidr"], node)
    proxy_nodes.each do |proxy|
      proxy_ip = locate_ip_in_cidr(node["swift"]["network"]["proxy-cidr"], proxy)
-     next if proxy_ip == my_ip # we're already using localhost
      next if not proxy_ip # skip nil ips so we dont break the config
      server_str = "#{proxy_ip}:11211" 
      memcache_servers << server_str unless memcache_servers.include?(server_str)
