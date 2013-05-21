@@ -34,12 +34,22 @@ if node["swift"]["authmode"] == "swauth"
   end
 end
 
+# determine where to find dispersion login information
+if node['swift']['swift_secret_databag_name'].nil?
+ auth_user = node["swift"]["dispersion"]["auth_user"]
+ auth_key  = node["swift"]["dispersion"]["auth_key"]
+else
+  swift_secrets = Chef::EncryptedDataBagItem.load "secrets", node['swift']['swift_secret_databag_name']
+  auth_user = swift_secrets['dispersion_auth_user']
+  auth_key = swift_secrets['dispersion_auth_key']
+end
+
 template "/etc/swift/dispersion.conf" do
   source "dispersion.conf.erb"
   owner "swift"
   group "swift"
   mode "0600"
   variables("auth_url" => node["swift"]["auth_url"],
-            "auth_user" => node["swift"]["dispersion"]["auth_user"],
-            "auth_key" => node["swift"]["dispersion"]["auth_key"])
+            "auth_user" => auth_user,
+            "auth_key" => auth_key)
 end

@@ -3,6 +3,7 @@
 #--------------------
 
 default["swift"]["state"] = {}
+default["swift"]["swift_hash"] = "107c0568ea84"                               # cluster_attribute
 default["swift"]["audit_hour"] = "5"                                          # cluster_attribute
 default["swift"]["disk_enum_expr"] = "node[:block_device]"                    # cluster_attribute
 default["swift"]["auto_rebuild_rings"] = false                                # cluster_attribute
@@ -12,17 +13,24 @@ default["swift"]["git_builder_ip"] = "127.0.0.1"                              # 
 # a valid release on http://ubuntu-cloud.archive.canonical.com/ubuntu
 default["swift"]["release"] = "folsom"					      # cluster_attribute
 
+# we support an optional secret databag where we will retrieve the
+# following attributes overriding any default attributes here
+#  
+# {
+#   "id": "swift_dal2",
+#   "swift_hash": "107c0568ea84"
+#   "swift_authkey": "keW4all"
+#   "dispersion_auth_user": "test:test",
+#   "dispersion_auth_key": "test"
+# }
+default["swift"]["swift_secret_databag_name"] = nil                            # cluster_attribute
+
 #--------------------
 # authentication
 #--------------------
 
-# auth settings for swauth - if there is a value in :authkey_data_bag_name
-# the secure databag with that name will be used to retrieve the clusters
-# superadmin authkey.  Otherwise, if it is left nil, then the plaintext
-# value of the :authkey attribute will be used.
 default["swift"]["authmode"]              = "swauth"                          # cluster_attribute
 default["swift"]["authkey"]               = "test"                            # cluster attribute
-default["swift"]["authkey_data_bag_name"] = nil				      # cluster attribute
 default["swift"]["swift_url"]             = "http://127.0.0.1:8080/v1/"	      # cluster_attribute
 default["swift"]["swauth_url"]            = "http://127.0.0.1:8080/v1/"	      # cluster_attribute
 default["swift"]["auth_url"]              = "http://127.0.0.1:8080/auth/v1.0" # cluster_attribute

@@ -94,11 +94,11 @@ else
 end
 
 # determine authkey to use
-if node['swift']['swift_authkey_databag_name'].nil?
+if node['swift']['swift_secret_databag_name'].nil?
   authkey = node['swift']['swift_authkey']
 else
-  authkey_secret = Chef::EncryptedDataBagItem.load "secrets", node['swift']['swift_authkey_databag_name']
-  authkey = authkey_secret['swift_authkey']
+  swift_secrets = Chef::EncryptedDataBagItem.load "secrets", node['swift']['swift_secret_databag_name']
+  authkey = swift_secrets['swift_authkey']
 end
 
 # create proxy config file
