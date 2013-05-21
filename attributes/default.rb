@@ -3,39 +3,44 @@
 #--------------------
 
 default["swift"]["state"] = {}
-default["swift"]["audit_hour"] = "5"                                        # cluster_attribute
-default["swift"]["disk_enum_expr"] = "node[:block_device]"                  # cluster_attribute
-default["swift"]["auto_rebuild_rings"] = false                              # cluster_attribute
-default["swift"]["git_builder_ip"] = "127.0.0.1"                            # cluster_attribute
+default["swift"]["audit_hour"] = "5"                                          # cluster_attribute
+default["swift"]["disk_enum_expr"] = "node[:block_device]"                    # cluster_attribute
+default["swift"]["auto_rebuild_rings"] = false                                # cluster_attribute
+default["swift"]["git_builder_ip"] = "127.0.0.1"                              # cluster_attribute
 
 # the release only has any effect on ubuntu, and must be
 # a valid release on http://ubuntu-cloud.archive.canonical.com/ubuntu
-default["swift"]["release"] = "folsom"					    # cluster_attribute
+default["swift"]["release"] = "folsom"					      # cluster_attribute
 
 #--------------------
 # authentication
 #--------------------
 
-# auth settings for swauth
-default["swift"]["authmode"]   = "swauth"                                    # cluster_attribute
-default["swift"]["swift_url"]  = "http://127.0.0.1:8080/v1/"		     # cluster_attribute
-default["swift"]["swauth_url"] = "http://127.0.0.1:8080/v1/"	 	     # cluster_attribute
-default["swift"]["auth_url"]   = "http://127.0.0.1:8080/auth/v1.0"           # cluster_attribute
+# auth settings for swauth - if there is a value in :authkey_data_bag_name
+# the secure databag with that name will be used to retrieve the clusters
+# superadmin authkey.  Otherwise, if it is left nil, then the plaintext
+# value of the :authkey attribute will be used.
+default["swift"]["authmode"]              = "swauth"                          # cluster_attribute
+default["swift"]["authkey"]               = "test"                            # cluster attribute
+default["swift"]["authkey_data_bag_name"] = nil				      # cluster attribute
+default["swift"]["swift_url"]             = "http://127.0.0.1:8080/v1/"	      # cluster_attribute
+default["swift"]["swauth_url"]            = "http://127.0.0.1:8080/v1/"	      # cluster_attribute
+default["swift"]["auth_url"]              = "http://127.0.0.1:8080/auth/v1.0" # cluster_attribute
 
 #---------------------
 # dispersion settings
 #---------------------
 
-default["swift"]["dispersion"]["auth_user"] = "test:test"                   # cluster_attribute
-default["swift"]["dispersion"]["auth_key"] = "test"                         # cluster_attribute
+default["swift"]["dispersion"]["auth_user"] = "test:test"                     # cluster_attribute
+default["swift"]["dispersion"]["auth_key"] = "test"                           # cluster_attribute
 
 
 # settings for the swift ring - these default settings are
 # a safe setting for testing but part_power should be set to
 # 26 in production to allow a swift cluster with 50,000 spindles
-default["swift"]["ring"]["part_power"] = 18				    # cluster_attribute
-default["swift"]["ring"]["min_part_hours"] = 1                              # cluster_attribute
-default["swift"]["ring"]["replicas"] = 3                                    # cluster_attribute
+default["swift"]["ring"]["part_power"] = 18				      # cluster_attribute
+default["swift"]["ring"]["min_part_hours"] = 1                                # cluster_attribute
+default["swift"]["ring"]["replicas"] = 3                                      # cluster_attribute
 
 #------------------
 # network settings

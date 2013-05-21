@@ -93,6 +93,14 @@ else
   end
 end
 
+# determine authkey to use
+if node['swift']['swift_authkey_databag_name'].nil?
+  authkey = node['swift']['swift_authkey']
+else
+  authkey_secret = Chef::EncryptedDataBagItem.load "secrets", "swift_authkey"
+  authkey = authkey_secret['swift_authkey']
+end
+
 # create proxy config file
 template "/etc/swift/proxy-server.conf" do
   source "proxy-server.conf.erb"
@@ -102,6 +110,7 @@ template "/etc/swift/proxy-server.conf" do
    variables("authmode" => node["swift"]["authmode"],
              "bind_host" => node["swift"]["network"]["proxy-bind-ip"],
              "bind_port" => node["swift"]["network"]["proxy-bind-port"],
+             "authkey" => authkey,
              "memcache_servers" => memcache_servers)
    notifies :restart, "service[swift-proxy]", :immediately 
 end
