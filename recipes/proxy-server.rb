@@ -97,7 +97,7 @@ end
 if node['swift']['swift_authkey_databag_name'].nil?
   authkey = node['swift']['swift_authkey']
 else
-  authkey_secret = Chef::EncryptedDataBagItem.load "secrets", "swift_authkey"
+  authkey_secret = Chef::EncryptedDataBagItem.load "secrets", node['swift']['swift_authkey_databag_name']
   authkey = authkey_secret['swift_authkey']
 end
 
