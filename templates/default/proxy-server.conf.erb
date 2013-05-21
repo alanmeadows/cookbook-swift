@@ -94,7 +94,7 @@ use = egg:swauth#swauth
 # super_admin_key = <secret_key>
 ######
 <% if account_management -%>
-super_admin_key = <%= node[:swift][:authkey] %>
+super_admin_key = <%= @authkey %>
 default_swift_cluster = local#<%= node[:swift][:swift_url] %>#<%= node[:swift][:swauth_url] %>
 <% else %>
 default_swift_cluster = local#<%= node[:swift][:swift_url] %>

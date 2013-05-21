@@ -55,12 +55,21 @@ directory "/etc/swift" do
   only_if "/usr/bin/id swift"
 end
 
+# determine hash
+if node['swift']['swift_secret_databag_name'].nil?
+  swifthash = node['swift']['swift_hash']
+else
+  swift_secrets = Chef::EncryptedDataBagItem.load "secrets", node['swift']['swift_secret_databag_name']
+  swifthash = swift_secrets['swift_hash']
+end
+
+
 file "/etc/swift/swift.conf" do
   action :create
   owner "swift"
   group "swift"
   mode "0700"
-  content "[swift-hash]\nswift_hash_path_suffix=#{node['swift']['swift_hash']}\n"
+  content "[swift-hash]\nswift_hash_path_suffix=#{swifthash}\n"
   only_if "/usr/bin/id swift"
 end
 
