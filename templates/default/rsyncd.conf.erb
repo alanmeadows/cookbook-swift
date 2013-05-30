@@ -6,19 +6,19 @@ pid file = /var/run/rsyncd.pid
 address = 0.0.0.0
 
 [account]
-max connections = 2
+max connections = 10
 path = /srv/node/
 read only = false
 lock file = /var/lock/account.lock
 
 [container]
-max connections = 2
+max connections = 10
 path = /srv/node/
 read only = false
 lock file = /var/lock/container.lock
 
 [object]
-max connections = 2
+max connections = 10
 path = /srv/node/
 read only = false
 lock file = /var/lock/object.lock

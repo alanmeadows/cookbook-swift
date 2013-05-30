@@ -15,6 +15,7 @@
 #####
 bind_ip = <%= @bind_ip %>
 bind_port = <%= @bind_port %>
+workers = 10
 
 [pipeline:main]
 pipeline = recon object-server
@@ -69,7 +70,7 @@ recon_cache_path = /var/cache/swift
 #####
 recon_enable = yes
 recon_cache_path = /var/cache/swift
-
+concurrency = 2
 
 
 [object-updater]
@@ -83,6 +84,7 @@ recon_cache_path = /var/cache/swift
 # conn_timeout = 0.5
 # slowdown will sleep that amount between objects
 # slowdown = 0.01
+concurrency = 2
 
 [object-auditor]
 # You can override the default log routing for this app here (don't use set!):
