@@ -211,6 +211,13 @@ In addition, there *must* be a node with the the
 swift-managment-server role to act as the ring repository.
 a
 
+Testing
+=======
+
+    $ bundle install
+    $ bundle exec berks install
+    $ bundle exec strainer test
+
 License and Author
 ====
 
