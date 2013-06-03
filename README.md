@@ -1,31 +1,85 @@
 Description
-====
+===========
 
-Installs packages and configuration for OpenStack Swift
+Installs the OpenStack Object Storage service **Swift** as part of the OpenStack reference deployment Chef for OpenStack. The http://github.com/stackforge/chef-openstack-repo contains documentation for using this cookbook in the context of a full OpenStack deployment. Swift is currently installed from packages.
+
+https://wiki.openstack.org/wiki/Swift
 
 Requirements
-====
+============
 
-Client:
+Clients
+--------
+
  * CentOS >= 6.3
  * Ubuntu >= 12.04
 
-Chef:
- * 0.10.8
+Chef
+---------
 
-Other variants of Ubuntu and Fedora may work, something crazy like
-Solaris probably will not.  YMMV, objects in mirror, etc.
+ * 0.10.8
+ 
+Cookbooks
+---------
+
+ * memcached
+ * sysctl
+ 
+Roles
+=====
+
+ * swift-account-server - storage node for account data
+ * swift-container-server - storage node for container data
+ * swift-object-server - storage node for object server
+ * swift-proxy-server - proxy for swift storge nodes
+ * swift-setup - server responsible for generating initial settings
+ * swift-management-server - responsible for ring generation
+ 
+The swift-management-server role performs the following functions:
+
+ * proxy node that knows super admin password
+ * ring repository and ring building workstation
+ * generally always has the swift-setup role too
+ * there can only be _one_ swift-management-server
+
+There *must* be  node with the the swift-managment-server role to act 
+as the ring repository.
+
+In small environments, it is likely that all storage machines will
+have all-in-one roles, with a load balancer ahead of it
+
+In larger environments, where it is cost effective to split the proxy
+and storage layer, storage nodes will carry
+swift-{account,container,object}-server roles, and there will be
+dedicated hosts with the swift-proxy-server role.
+
+In really really huge environments, it's possible that the storage
+node will be split into swift-{container,accout}-server nodes and
+swift-object-server nodes.
+
 
 Attributes
-====
+==========
 
- * node[:swift][:authmode] - "swauth" or "keystone" (default "swauth"). Right now, only swauth is supported.
+ * ```default[:swift][:authmode]``` - "swauth" or "keystone" (default "swauth"). Right now, only swauth is supported (defaults to swauth)
 
- * node[:swift][:swift_hash] - swift_hash_path_suffix in /etc/swift/swift.conf
+ * ```default[:swift][:swift_secret_databag_name]``` - this cookbook supports an optional secret databag where we will retrieve the following attributes overriding any default attributes below. (defaults to nil)
+       
+```
+        {
+          "id": "swift_dal2",
+          "swift_hash": "1a7c0568fa84"
+          "swift_authkey": "keY4all"
+          "dispersion_auth_user": "ops:dispersion",
+          "dispersion_auth_key": "dispersionpass"
+        }
+```
 
- * node[:swift][:audit_hour] - Hour to run swift_auditor on storage nodes (default 5)
+ * ```default[:swift][:swift_hash]``` - swift_hash_path_suffix in /etc/swift/swift.conf (defaults to 107c0568ea84)
 
- * node[:swift][:disk_enum_expr] - Eval-able expression that lists
+ * ```default[:swift][:audit_hour]``` - Hour to run swift_auditor on storage nodes (defaults to 5)
+
+ * ```default[:swift][:disk_enum_expr]``` - Eval-able expression that lists
    candidate disk nodes for disk probing.  The result shoule be a hash
    with keys being the device name (without the leading "/dev/") and a
    hash block of any extra info associated with the device.  For
@@ -35,16 +89,13 @@ Attributes
    metadata about them, so { "sdc" => {}} is probably enough.  Example
    expression: Hash[('a'..'f').to_a.collect{|x| [ "sd{x}", {} ]}]
 
+ * ```default[:swift][:ring][:part_power]``` - controls the size of the ring (defaults to 18)
+  
+ * ```default[:swift][:ring][:min_part_hours]``` - the minimum number of hours before swift is allowed to migrate a partition (defaults to 1)
+  
+ * ```default[:swift][:ring][:replicas]``` - how many replicas swift should retain (defaults to 3)
 
-The following swift initial ring construction parameters can be customized,
-however they are set to safe defaults even for production environments
-allowing up to 50,000 spindles:
-
-  * default[:swift][:ring][:part_power] 
-  * default[:swift][:ring][:min_part_hours] 
-  * default[:swift][:ring][:replicas]
-
- * node[:swift][:disk_test_filter] - an array of expressions that must
+ * ```default[:swift][:disk_test_filter]``` - an array of expressions that must
    all be true in order a block deviced to be considered for
    formatting and inclusion in the cluster.  Each rule gets evaluated
    with "candidate" set to the device name (without the leading
@@ -59,7 +110,7 @@ allowing up to 50,000 spindles:
 
     * "info['removable'] = 0" ])
 
- * node[:swift][:expected_disks] - an array of device names that the
+ * ```default[:swift][:expected_disks]``` - an array of device names that the
    operator expecs to be identified by the previous two values.  This
    acts as a second-check on discovered disks.  If this array doesn't
    match the found disks, then chef processing will be stopped.
@@ -68,148 +119,122 @@ allowing up to 50,000 spindles:
 There are other attributes that must be set depending on authmode.
 For "swauth", the following attributes are used:
 
- * node[:swift][:authkey] - swauth "swauthkey" if using swauth
+ * ```default[:swift][:authkey]``` - swauth super admin key if using swauth (defaults to test)
 
 In addition, because swift is typically deployed as a cluster
 there are some attributes used to find interfaces and ip addresses
 on storage nodes:
 
- * node[:swift][:network][:proxy-bind-ip] - the IP address to bind to
-   on the proxy servers, defaults to 0.0.0.0 for all addresses.
- * node[:swift][:network][:proxy-bind-port] - the port to bind to
-   on the proxy servers, defaults to 8080
- * node[:swift][:network][:account-bind-ip] - the IP address to bind to
-   on the account servers, defaults to 0.0.0.0 for all addresses.
- * node[:swift][:network][:account-bind-port] - the port to bind to
-   on the account servers, defaults to 6002
- * node[:swift][:network][:container-bind-ip] - the IP address to bind to
-   on the container servers, defaults to 0.0.0.0 for all addresses.
- * node[:swift][:network][:container-bind-port] - the port to bind to
-   on the container servers, defaults to 6002
- * node[:swift][:network][:object-bind-ip] - the IP address to bind to
-   on the object servers, defaults to 0.0.0.0 for all addresses.
- * node[:swift][:network][:object-bind-port] - the port to bind to
-   on the container servers, defaults to 6002
- * node[:swift][:network][:object-cidr] - the CIDR network for your object
-   servers in order to build the ring, defaults to 10.0.0.0/24
-
-Deps
-====
-
- * apt
-
-Roles
-====
-
- * swift-account-server - storage node for account data
- * swift-container-server - storage node for container data
- * swift-object-server - storage node for object server
- * swift-proxy-server - proxy for swift storge nodes
- * swift-management-server - basically serves two functions:
-   * proxy node with account management enabled
-   * ring repository and ring building workstation
-   THERE CAN ONLY BE ONE HOST WITH THE MANAGMENET SERVER ROLE!
- * swift-all-in-one - role shortcut for all object classes and proxy
-   on one machine.
-
-In small environments, it is likely that all storage machines will
-have all-in-one roles, with a load balancer ahead of it
-
-In larger environments, where it is cost effective to split the proxy
-and storage layer, storage nodes will carry
-swift-{account,container,object}-server roles, and there will be
-dedicated hosts with the swift-proxy-server role.
-
-In really really huge environments, it's possible that the storage
-node will be split into swift-{container,accout}-server nodes and
-swift-object-server nodes.
+ * ```default[:swift][:git_builder_ip]``` - the IP address of the management server which other cluster members will use as their git pull target for ring updates (defaults to 127.0.0.1)
+ * ```default[:swift][:network][:proxy-bind-ip]``` - the IP address to bind to
+   on the proxy servers (defaults to 0.0.0.0 for all addresses)
+ * ```default[:swift][:network][:proxy-bind-port]``` - the port to bind to
+   on the proxy servers (defaults to 8080)
+ * ```default[:swift][:network][:account-bind-ip]``` - the IP address to bind to
+   on the account servers (defaults to 0.0.0.0 for all addresses)
+ * ```default[:swift][:network][:account-bind-port]``` - the port to bind to
+   on the account servers (defaults to 6002)
+ * ```default[:swift][:network][:container-bind-ip]``` - the IP address to bind to
+   on the container servers (defaults to 0.0.0.0 for all addresses)
+ * ```default[:swift][:network][:container-bind-port]``` - the port to bind to
+   on the container servers (defaults to 6002)
+ * ```default[:swift][:network][:object-bind-ip]``` - the IP address to bind to
+   on the object servers (defaults to 0.0.0.0 for all addresses)
+ * ```default[:swift][:network][:object-bind-port]``` - the port to bind to
+   on the container servers (defaults to 6002)
+ * ```default[:swift][:network][:object-cidr]``` - the CIDR network for your object
+   servers in order to build the ring (defaults to 10.0.0.0/24)
 
 Examples
-====
+========
 
-Example environment:
+Example environment
+-------------------
 
-
-    {
-	"default_attributes": {
-	    "swift": {
-		"swift_hash": "107c0568ea84",
-		"authmode": "swauth",
-		"authkey": "test"
-                "auto_rebuild_rings": false
-                "git_builder_ip": "10.0.0.10"
-                "swauth": {
-                    "url": "http://10.0.0.10:8080/v1/"
-                }
-
-	    },
+```json
+{
+  "default_attributes": {
+    "swift": {
+	  "swift_hash": "107c0568ea84",
+	  "authmode": "swauth",
+	  "authkey": "test"
+      "auto_rebuild_rings": false
+      "git_builder_ip": "10.0.0.10"
+      "swauth": {
+        "url": "http://10.0.0.10:8080/v1/"
+      }
 	},
-	"cookbook_versions": {
-	},
-	"description": "",
-	"default_attributes": {
-	},
-	"name": "swift",
-	"chef_type": "environment",
-	"json_class": "Chef::Environment"
-    }
+  },
+  "name": "swift",
+  "chef_type": "environment",
+  "json_class": "Chef::Environment"
+}
+```
 
 This sets up defaults for a swauth-based cluster with the storage
 network on 10.0.0.0/24.
 
-Example all-in-one storage node config (note there is only one node
-with the swift-setup role)
+Example all-in-one
+--------------------------
 
-    {
-      "id":       "storage1",
-      "name":     "storage1",
-      "json_class": "Chef::Node",
-      "run_list": [
-          "role[swift-setup]",
-          "role[swift-management-server]",
-          "role[swift-account-server]",
-          "role[swift-object-server]",
-          "role[swift-container-server]",
-          "role[swift-proxy-server]"
-      ],
-      "chef_environment": "development",
-      "normal": {
-        "swift": {
-          "zone": "1"
-        }
-      }
+Example all-in-one storage node config (note there should only ever be
+one node with the swift-setup and swift-management roles)
+
+```json
+{
+  "id":       "storage1",
+  "name":     "storage1",
+  "json_class": "Chef::Node",
+  "run_list": [
+    "role[swift-setup]",
+    "role[swift-management-server]",
+    "role[swift-account-server]",
+    "role[swift-object-server]",
+    "role[swift-container-server]",
+    "role[swift-proxy-server]"
+  ],
+  "chef_environment": "development",
+  "normal": {
+    "swift": {
+      "zone": "1"
     }
+  }
+}
+```    
 
-Example storage-server role:
+Standalone Storage Server
+-------------------------
 
-    {
-      "name": "swift-object-server",
-      "json_class": "Chef::Role",
-      "run_list": [
-        "recipe[apt]",
-        "recipe[swift::object-server]"
-      ],
-      "description": "A storage server role.",
-      "chef_type": "role"
-    }
+```json
+{
+  "name": "swift-object-server",
+  "json_class": "Chef::Role",
+  "run_list": [
+    "recipe[swift::object-server]"
+  ],
+  "description": "A storage server role.",
+  "chef_type": "role"
+}
+```
+  
+Standalone Proxy Server
+-----------------------
 
-Run list for proxy server:
+```json
+  "run_list": [
+    "role[swift-proxy-server]"
+  ]
+```
 
-    "run_list": [
-        "role[swift-proxy-server]"
-    ]
+Testing
+=======
 
-Run list for combined object, container, and account server:
+This cookbook is using [ChefSpec](https://github.com/acrmp/chefspec) for testing. Run the following before commiting. It will run your tests, and check for lint errors.
 
-    "run_list": [
-        "role[swift-object-server]",
-        "role[swift-container-server]",
-        "role[swift-account-server]"
-    ]
-
-In addition, there *must* be a node with the the
-swift-managment-server role to act as the ring repository.
-a
+    $ ./run_tests.bash
+    
+There is also a Vagrant test environment that you can launch in order to integration
+test this cookbook. See the <a href="tests/README.md" target="_blank">tests/README.md</a> file for more information on launching the environment.
 
 Testing
 =======
@@ -219,12 +244,17 @@ Testing
     $ bundle exec strainer test
 
 License and Author
-====
+==================
 
-Author:: Ron Pedde (<ron.pedde@rackspace.com>)
-Author:: Will Kelly (<will.kelly@rackspace.com>)
-
-Copyright:: 2012, Rackspace US, Inc.
+|                      |                                                    |
+|:---------------------|:---------------------------------------------------|
+| **Authors**          |  Alan Meadows (<am240k@att.com>)                   |
+|                      |  Oisin Feely (<of3434@att.com>)                    |
+|                      |  Ron Pedde (<ron.pedde@rackspace.com>)             |
+|                      |  Will Kelly (<will.kelly@rackspace.com>)           |
+|                      |                                                    |
+| **Copyright**        |  Copyright (c) 2013, AT&T, Inc.                    |
+|                      |  Copyright (c) 2012, Rackspace US, Inc.            |
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -235,6 +265,6 @@ You may obtain a copy of the License at
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
+See the License for the specific language governing permissions and⋅
 limitations under the License.
 

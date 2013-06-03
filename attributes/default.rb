@@ -51,6 +51,11 @@ default["swift"]["ring"]["min_part_hours"] = 1                                # 
 default["swift"]["ring"]["replicas"] = 3                                      # cluster_attribute
 
 #------------------
+# statistics
+#------------------
+default["swift"]["enable_statistics"] = true
+
+#------------------
 # network settings
 #------------------
 

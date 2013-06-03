@@ -38,9 +38,16 @@ end
 workers = <%= [ node[:cpu][:total] - 1, 1 ].max %>
 bind_ip = <%= @bind_host %>
 bind_port = <%= @bind_port %>
+<% if node[:swift][:enable_statistics] -%>
+log_statsd_host = localhost
+log_statsd_port = 8125
+log_statsd_default_sample_rate = 1
+log_statsd_metric_prefix = openstack.swift.<%= node[:hostname] %>
+<% end %>
+
 
 [pipeline:main]
-pipeline = catch_errors healthcheck cache ratelimit <%= pipeline %> proxy-server
+pipeline = catch_errors healthcheck cache ratelimit <%= pipeline %> proxy-logging proxy-server
 
 [app:proxy-server]
 use = egg:swift#proxy
@@ -233,3 +240,23 @@ use = egg:swift#formpost
 [filter:keystoneauth]
 operator_roles = Member,admin
 use = egg:swift#keystoneauth
+
+[filter:proxy-logging]
+use = egg:swift#proxy_logging
+# access_log_name = proxy
+# access_log_facility = LOG_LOCAL0
+# access_log_level = INFO
+# access_log_address = /dev/log
+# If set, access_log_udp_host will override access_log_address
+# access_log_udp_host =
+# access_log_udp_port = 514
+# You can use log_statsd_* from [DEFAULT] or override them here:
+# access_log_statsd_host = localhost
+# access_log_statsd_port = 8125
+# access_log_statsd_default_sample_rate = 1
+# access_log_statsd_metric_prefix =
+# access_log_headers = False
+# What HTTP methods are allowed for StatsD logging (comma-sep); request methods
+# not in this list will have "BAD_METHOD" for the <verb> portion of the metric.
+# log_statsd_valid_http_methods = GET,HEAD,POST,PUT,DELETE,COPY
+

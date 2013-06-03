@@ -23,6 +23,11 @@ end
 
 include_recipe 'sysctl::default'
 
+# optionally statsd daemon for stats collection
+if node["swift"]["enable_statistics"]
+  include_recipe 'statsd::server'
+end
+
 platform_options = node["swift"]["platform"]
 
 # update repository if requested with the ubuntu cloud

@@ -13,6 +13,6 @@ recipe            "swift::container-server", "Installs the swift container serve
   supports os
 end
 
-%w{ memcached sysctl }.each do |dep|
-  depends dep
-end
+depends "memcached"
+depends "sysctl"
+depends "statsd"
