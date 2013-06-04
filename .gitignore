@@ -3,4 +3,4 @@ validation.pem
 metadata.json
 *~
 .bundle/
-cookbooks/
+.cookbooks/

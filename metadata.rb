@@ -16,3 +16,4 @@ end
 depends "memcached"
 depends "sysctl"
 depends "statsd"
+depends "apt"
