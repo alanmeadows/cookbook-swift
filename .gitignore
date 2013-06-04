@@ -4,3 +4,4 @@ metadata.json
 *~
 .bundle/
 cookbooks/
+.cookbooks/
