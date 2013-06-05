@@ -1,4 +1,4 @@
-require 'spec_helper'
+require_relative 'spec_helper'
 
 describe 'swift::storage-common' do
 
@@ -31,7 +31,7 @@ describe 'swift::storage-common' do
         expect(sprintf("%o", @file.mode)).to eq "700"
       end
 
- 
+
     end
 
     describe "/etc/swift/drive-audit.conf" do

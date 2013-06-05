@@ -1,4 +1,4 @@
-require 'spec_helper'
+require_relative 'spec_helper'
 
 describe 'swift::object-server' do
 
@@ -39,7 +39,7 @@ describe 'swift::object-server' do
     end
 
     describe "/var/spool/crontab/root" do
- 
+
       it "template contents" do
         pending "TODO: check for recon script"
       end
