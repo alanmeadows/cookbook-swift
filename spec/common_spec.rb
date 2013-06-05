@@ -1,4 +1,4 @@
-require 'spec_helper'
+require_relative 'spec_helper'
 
 describe 'swift::common' do
 
@@ -24,7 +24,7 @@ describe 'swift::common' do
       @chef_run.converge "swift::common"
     end
 
-      
+
     it 'should set syctl paramaters' do
       # N.B. we could examine chef log
       pending "TODO: right now theres no way to do lwrp and test for this"

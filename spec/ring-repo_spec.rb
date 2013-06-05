@@ -1,4 +1,4 @@
-require 'spec_helper'
+require_relative 'spec_helper'
 
 describe 'swift::ring-repo' do
 
@@ -19,7 +19,7 @@ describe 'swift::ring-repo' do
       @node.set['swift']['git_builder_ip'] = '10.0.0.10'
       @chef_run.converge "swift::ring-repo"
     end
-      
+
     it 'installs git package for ring management' do
       expect(@chef_run).to install_package "git-daemon-sysvinit"
     end
