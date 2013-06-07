@@ -42,6 +42,27 @@ describe 'swift::management-server' do
 
     end
 
+
+    describe "/usr/local/bin/swift_statsd_publish.py" do
+
+      before do
+        @file = @chef_run.template "/usr/local/bin/swift_statsd_publish.py"
+      end
+
+      it "has proper owner" do
+        expect(@file).to be_owned_by "root", "root"
+      end
+
+      it "has proper modes" do
+        expect(sprintf("%o", @file.mode)).to eq "755"
+      end
+
+      it "template contents" do
+        pending "TODO: implement"
+      end
+
+    end
+
   end
 
 end

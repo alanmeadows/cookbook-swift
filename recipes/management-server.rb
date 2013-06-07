@@ -53,3 +53,16 @@ template "/etc/swift/dispersion.conf" do
             "auth_user" => auth_user,
             "auth_key" => auth_key)
 end
+
+if node['swift']['statistics']['enable']
+  template "/usr/local/bin/swift_statsd_publish.py" do
+    source "swift_statsd_publish.py.erb"
+    owner "root"
+    group "root"
+    mode "0755"
+  end
+  cron "cron_swift_statsd_publish" do
+    command "/usr/local/bin/swift_statsd_publish.py"
+    minute "*/#{node["swift"]["statistics"]["report_frequency"]}"
+  end
+end
