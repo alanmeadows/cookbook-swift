@@ -53,7 +53,38 @@ default["swift"]["ring"]["replicas"] = 3                                      # 
 #------------------
 # statistics
 #------------------
-default["swift"]["enable_statistics"] = true
+
+# whether chef should enable report for statsd reporting
+default["swift"]["statistics"]["enable"]                   = true
+default["swift"]["statistics"]["enable_dispersion_report"] = true
+default["swift"]["statistics"]["enable_recon_report"]      = true
+
+# there are two ways to discover your graphite server ip for 
+# statsd to periodically publish to.  You can directly set
+# the ip below, or leave it set to nil and supply chef with
+# the role name of your graphite server and the interface
+# name to retrieve the appropriate internal ip address from
+#
+# if no servers with the role below can be found then
+# 127.0.0.1 will be used
+default["swift"]["statistics"]["graphing_ip"]              = nil
+default["swift"]["statistics"]["graphing_role"]            = 'infra-graphing'
+default["swift"]["statistics"]["graphing_interface"]       = 'bond1.2001'
+
+# how frequently to run chef instantiated /usr/local/bin/swift_statsd_publish.py
+# which publishes dispersion and recon statistics
+default["swift"]["statistics"]["report_frequency"]         = 15   
+
+# settings for statsd which should be configured to use the local 
+# statsd daemon that chef will install if statistics are enabled
+default["swift"]["statistics"]["statsd_host"]              = "127.0.0.1"
+default["swift"]["statistics"]["statsd_port"]              = "8125"
+default["swift"]["statistics"]["statsd_prefix"]            = "openstack.swift"
+
+# paths to the recon cache files
+default["swift"]["statistics"]["recon_account_cache"]      = "/var/cache/swift/account.recon"
+default["swift"]["statistics"]["recon_container_cache"]    = "/var/cache/swift/container.recon"
+default["swift"]["statistics"]["recon_object_cache"]       = "/var/cache/swift/object.recon"
 
 #------------------
 # network settings
